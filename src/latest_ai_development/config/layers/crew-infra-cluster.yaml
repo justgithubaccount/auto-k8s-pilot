@@ -1,0 +1,3 @@
+crew_name: infra-cluster
+description: >
+  K8s/Argo operational crew: investigate pods, summarize errors, report status.

@@ -1,0 +1,3 @@
+steps:
+  - run: k8s_pods_overview
+  - run: k8s_error_logs

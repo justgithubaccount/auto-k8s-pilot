@@ -1,0 +1,11 @@
+process: sequential
+agents:
+  - id: k8s_operator
+    profile: k8s_operator
+  - id: researcher
+    profile: researcher
+tasks:
+  - id: k8s_pods_overview
+    agent: k8s_operator
+  - id: k8s_error_logs
+    agent: k8s_operator
