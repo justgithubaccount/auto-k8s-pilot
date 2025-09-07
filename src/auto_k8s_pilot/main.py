@@ -4,7 +4,7 @@ import warnings
 
 from datetime import datetime
 
-from latest_ai_development.crew import LatestAiDevelopment
+from auto_k8s_pilot.crew import AutoK8sPilot
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 
@@ -26,7 +26,7 @@ def run():
     }
     
     try:
-        LatestAiDevelopment().crew().kickoff(inputs=inputs)
+        AutoK8sPilot().crew().kickoff(inputs=inputs)
     except Exception as e:
         raise Exception(f"An error occurred while running the crew: {e}")
 
@@ -40,7 +40,7 @@ def train():
         'current_year': str(datetime.now().year)
     }
     try:
-        LatestAiDevelopment().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
+        AutoK8sPilot().crew().train(n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs)
 
     except Exception as e:
         raise Exception(f"An error occurred while training the crew: {e}")
@@ -50,7 +50,7 @@ def replay():
     Replay the crew execution from a specific task.
     """
     try:
-        LatestAiDevelopment().crew().replay(task_id=sys.argv[1])
+        AutoK8sPilot().crew().replay(task_id=sys.argv[1])
 
     except Exception as e:
         raise Exception(f"An error occurred while replaying the crew: {e}")
@@ -65,7 +65,7 @@ def test():
     }
     
     try:
-        LatestAiDevelopment().crew().test(n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs)
+        AutoK8sPilot().crew().test(n_iterations=int(sys.argv[1]), eval_llm=sys.argv[2], inputs=inputs)
 
     except Exception as e:
         raise Exception(f"An error occurred while testing the crew: {e}")

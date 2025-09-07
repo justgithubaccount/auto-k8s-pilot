@@ -4,11 +4,12 @@ from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List
 
 from crewai_tools import SerperDevTool
-from latest_ai_development.tools.kubectl_tool import KubectlTool
+from auto_k8s_pilot.tools.kubectl_tool import KubectlTool
+
 
 @CrewBase
-class LatestAiDevelopment():
-    """LatestAiDevelopment crew"""
+class AutoK8sPilot:
+    """AutoK8sPilot crew"""
 
     agents: List[BaseAgent]
     tasks: List[Task]
