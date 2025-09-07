@@ -1,7 +1,7 @@
 [project]
-name = "latest_ai_development"
+name = "auto_k8s_pilot"
 version = "0.1.0"
-description = "latest-ai-development using crewAI"
+description = "auto-k8s-pilot using crewAI"
 authors = [{ name = "Your Name", email = "you@example.com" }]
 requires-python = ">=3.10,<3.14"
 dependencies = [
@@ -9,11 +9,11 @@ dependencies = [
 ]
 
 [project.scripts]
-latest_ai_development = "latest_ai_development.main:run"
-run_crew = "latest_ai_development.main:run"
-train = "latest_ai_development.main:train"
-replay = "latest_ai_development.main:replay"
-test = "latest_ai_development.main:test"
+auto_k8s_pilot = "auto_k8s_pilot.main:run"
+run_crew = "auto_k8s_pilot.main:run"
+train = "auto_k8s_pilot.main:train"
+replay = "auto_k8s_pilot.main:replay"
+test = "auto_k8s_pilot.main:test"
 
 [build-system]
 requires = ["hatchling"]

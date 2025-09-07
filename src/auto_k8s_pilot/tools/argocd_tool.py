@@ -1,4 +1,4 @@
-# src/latest_ai_development/tools/argocd_tool.py
+# src/auto_k8s_pilot/tools/argocd_tool.py
 import os, requests
 from typing import Type, Literal, Optional
 from pydantic import BaseModel, Field
@@ -9,8 +9,8 @@ class ArgoInput(BaseModel):
     app: Optional[str] = Field(None, description="Application name for status/sync")
 
 class ArgoCDTool(BaseTool):
-    name = "argocd_tool"
-    description = (
+    name: str = "argocd_tool"
+    description: str = (
         "Argo CD API wrapper. Read-only by default (list_apps, app_status). "
         "app_sync requires ALLOW_MUTATING=true."
     )

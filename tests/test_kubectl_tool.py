@@ -1,6 +1,6 @@
 import os
 import types
-from latest_ai_development.tools.kubectl_tool import KubectlTool
+from auto_k8s_pilot.tools.kubectl_tool import KubectlTool
 
 class Proc:
     def __init__(self, rc=0, out="", err=""):

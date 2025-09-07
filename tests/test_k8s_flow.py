@@ -1,8 +1,10 @@
 # tests/test_k8s_flow.py
 import os
 from crewai import Crew, Process
-from latest_ai_development.crew import LatestAiDevelopment
-from latest_ai_development.tools import kubectl_tool as ktool
+from auto_k8s_pilot.crew import AutoK8sPilot
+from auto_k8s_pilot.tools import kubectl_tool as ktool
+import litellm
+import types
 
 def test_k8s_health_flow(monkeypatch):
     # Фиктивный ответ для get/logs
@@ -15,7 +17,20 @@ def test_k8s_health_flow(monkeypatch):
 
     monkeypatch.setattr(ktool.KubectlTool, "_run", fake_run)
 
-    c = LatestAiDevelopment()
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+
+    def fake_completion(*args, **kwargs):
+        return types.SimpleNamespace(
+            choices=[
+                types.SimpleNamespace(
+                    message=types.SimpleNamespace(content="pod-1 CrashLoopBackOff")
+                )
+            ]
+        )
+
+    monkeypatch.setattr(litellm, "completion", fake_completion)
+
+    c = AutoK8sPilot()
     # В smoke-тесте берём только k8s-оператора и k8s-таски
     crew = Crew(
         agents=[c.k8s_operator()],
