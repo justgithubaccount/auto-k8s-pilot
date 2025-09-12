@@ -1,4 +1,4 @@
-import os, shlex, subprocess, json
+import os, subprocess, json
 from typing import Type, Optional, Literal
 from pydantic import BaseModel, Field, validator
 from crewai.tools import BaseTool
@@ -21,6 +21,7 @@ class KubectlInput(BaseModel):
     @validator("namespace", always=True)
     def default_ns(cls, v):
         return v or os.getenv("DEFAULT_NAMESPACE", "default")
+
 
 class KubectlTool(BaseTool):
     name: str = "kubectl_tool"
@@ -56,7 +57,11 @@ class KubectlTool(BaseTool):
         if context:
             base += [f"--context={context}"]
 
-        ns_flag = ["-n", namespace] if namespace else []
+        # --- Namespace flag ---------------------------------------------------
+        if namespace in (None, "", "all"):
+            ns_flag = ["-A"]
+        else:
+            ns_flag = ["-n", namespace]
 
         # --- Build kubectl args ----------------------------------------------
         cmd = base[:]
@@ -68,8 +73,7 @@ class KubectlTool(BaseTool):
                 cmd += [name]
             if selector:
                 cmd += ["-l", selector]
-            # server-side limit (best-effort; requires supported resources)
-            cmd += ["--chunk-size=0", f"--output={output}"]
+            cmd += ["--chunk-size=0", "-o", output]
             if output not in ("yaml", "json"):
                 cmd += ["--no-headers=true"]
             cmd += ["--ignore-not-found=true"]
@@ -77,7 +81,6 @@ class KubectlTool(BaseTool):
         elif action == "logs":
             if not kind:
                 kind = "pods"
-            # translate kind->pod selection: logs supports pods, so ensure we fetch pod name
             if kind not in ("pod", "pods"):
                 return "ERROR: logs currently supports 'pod(s)' kind only"
             if not name and not selector:
@@ -101,7 +104,6 @@ class KubectlTool(BaseTool):
                 cmd += ["-l", selector]
             cmd += ns_flag
         elif action == "top":
-            # kubectl top pods/nodes
             if kind not in ("pods", "nodes"):
                 return "ERROR: top supports kind in ['pods','nodes']"
             cmd += ["top", kind]
@@ -135,12 +137,10 @@ class KubectlTool(BaseTool):
             return f"ERROR: execution failed ({e})"
 
         if proc.returncode != 0:
-            # redact kubeconfig path if leaked
             stderr = proc.stderr.replace(kubeconfig, "<KUBECONFIG>")
             return f"ERROR: kubectl exited {proc.returncode}: {stderr.strip()[:4000]}"
 
         out = proc.stdout.strip()
-        # Compact overly large JSON to short preview to avoid blowing up context
         if out.startswith("{") or out.startswith("["):
             try:
                 data = json.loads(out)
