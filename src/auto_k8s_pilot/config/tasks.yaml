@@ -28,14 +28,31 @@ k8s_pods_overview:
   inputs:
     namespace: all
 
-# k8s_error_logs:
-#   description: >
-#     If any pods look unhealthy, call kubectl_tool(action="logs") for the first one.
-#     Tail {tail} lines. Summarize top 5 repeating errors.
-#   expected_output: >
-#     Bullet list of the top errors with counts + 10-line excerpt.
-#   agent: k8s_operator
-#   inputs:
-#     tail: 300
-#     namespace: default
+explain_pods:
+  description: >
+    Take the raw kubectl output from the previous task and explain it in plain language.
+    Summarize how many pods are running, pending, or failing, and which namespaces they belong to.
+  expected_output: >
+    Human-readable summary (paragraph + bullet points).
+  agent: reporting_analyst
+
+cluster_summary:
+  description: >
+    Analyze the raw kubectl get pods output and provide a high-level summary
+    of what components are installed in the cluster. Group them by purpose:
+    - core Kubernetes system pods
+    - networking (CNI)
+    - ingress
+    - GitOps / CI/CD
+    - monitoring, metrics, or others
+
+    Explain in plain language what each component does and how it fits
+    into the cluster architecture.
+  expected_output: >
+    Human-readable explanation of the cluster architecture:
+    - list of detected components
+    - their roles and responsibilities
+    - notes on health (running vs pending/failing)
+  agent: infra_architect
+
 
