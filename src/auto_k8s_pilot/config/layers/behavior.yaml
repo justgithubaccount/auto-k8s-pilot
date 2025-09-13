@@ -2,10 +2,37 @@ process: sequential
 agents:
   - id: k8s_operator
     profile: k8s_operator
-  - id: researcher
-    profile: researcher
+  - id: reporting_analyst
+    profile: reporting_analyst
+  - id: infra_architect
+    profile: infra_architect
+  - id: argocd_observer
+    profile: argocd_observer
+  - id: loki_analyst
+    profile: loki_analyst
+  - id: incident_triager
+    profile: incident_triager
 tasks:
   - id: k8s_pods_overview
     agent: k8s_operator
-  - id: k8s_error_logs
+  - id: explain_pods
+    agent: reporting_analyst
+  - id: cluster_summary
+    agent: infra_architect
+  - id: k8s_top_nodes
     agent: k8s_operator
+  - id: k8s_top_pods_ns_default
+    agent: k8s_operator
+  - id: k8s_events_recent
+    agent: k8s_operator
+  - id: argocd_list_apps
+    agent: argocd_observer
+  - id: argocd_app_status_chat_api
+    agent: argocd_observer
+  - id: loki_recent_errors_chat_api
+    agent: loki_analyst
+  - id: loki_http_activity_chat_api
+    agent: loki_analyst
+  - id: incident_create_issue_if_needed
+    agent: incident_triager
+
