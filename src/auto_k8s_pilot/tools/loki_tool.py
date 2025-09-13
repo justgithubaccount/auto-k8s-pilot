@@ -1,8 +1,9 @@
+import os
 import datetime as dt
 import requests
 from pydantic import BaseModel, Field
 from crewai.tools import BaseTool
-from typing import Type, Optional
+from typing import Type
 
 class LokiInput(BaseModel):
     query: str = Field(..., description='LogQL query, e.g. {app="chat-api"} |= "ERROR"')
@@ -10,8 +11,8 @@ class LokiInput(BaseModel):
     limit: int = Field(200, description='Max entries to fetch')
 
 class LokiQueryTool(BaseTool):
-    name = "loki_query"
-    description = "Query Grafana Loki via HTTP API and summarize recent log events."
+    name: str = "loki_query"
+    description: str = "Query Grafana Loki via HTTP API and summarize recent log events."
     args_schema: Type[BaseModel] = LokiInput
 
     def _run(self, query: str, minutes: int = 30, limit: int = 200) -> str:

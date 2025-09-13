@@ -9,8 +9,8 @@ class GitHubIssueInput(BaseModel):
     body: str = Field(..., description="Issue body in Markdown")
 
 class GitHubIssueTool(BaseTool):
-    name = "github_create_issue"
-    description = "Create a GitHub issue in a given repository."
+    name: str = "github_create_issue"
+    description: str = "Create a GitHub issue in a given repository."
     args_schema: Type[BaseModel] = GitHubIssueInput
 
     def _run(self, repo: str, title: str, body: str) -> str:

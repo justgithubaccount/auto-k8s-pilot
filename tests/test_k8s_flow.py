@@ -31,10 +31,9 @@ def test_k8s_health_flow(monkeypatch):
     monkeypatch.setattr(litellm, "completion", fake_completion)
 
     c = AutoK8sPilot()
-    # В smoke-тесте берём только k8s-оператора и k8s-таски
     crew = Crew(
-        agents=[c.k8s_operator()],
-        tasks=[c.k8s_pods_overview(), c.k8s_error_logs()],
+        agents=[c.k8s_operator(), c.reporting_analyst()],
+        tasks=[c.k8s_pods_overview(), c.explain_pods()],
         process=Process.sequential,
         verbose=False,
     )

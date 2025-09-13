@@ -1,3 +1,7 @@
 crew_name: infra-cluster
 description: >
-  K8s/Argo operational crew: investigate pods, summarize errors, report status.
+  K8s/Argo/O11y operational crew for app-release:
+  - GitOps drift via ArgoCD
+  - Resource pressure and events via kubectl
+  - Error and HTTP activity via Loki
+  - Auto-triage to GitHub issues
