@@ -31,7 +31,7 @@ cluster_summary:
     Human-readable explanation of cluster architecture with detected components, roles, and health notes.
   agent: infra_architect
 
-# --- New: ArgoCD / GitOps ----------------------------------------------------
+# --- ArgoCD / GitOps ----------------------------------------------------
 argocd_list_apps:
   description: >
     Use argocd_tool with op="list_apps".
@@ -61,7 +61,7 @@ argocd_sync_chat_api:
   inputs:
     app: chat-api
 
-# --- New: Loki / Observability ------------------------------------------------
+# --- Loki / Observability ------------------------------------------------
 loki_recent_errors_chat_api:
   description: >
     Use loki_query to fetch last 30 minutes for {app="chat-api"} with "|= \"ERROR\"" and limit=200.
@@ -86,7 +86,7 @@ loki_http_activity_chat_api:
     minutes: 30
     limit: 200
 
-# --- New: K8s resource pressure ----------------------------------------------
+# --- K8s resource pressure ----------------------------------------------
 k8s_top_nodes:
   description: >
     Use kubectl_tool with action="top", kind="nodes" to fetch node-level CPU/MEM usage.
@@ -118,7 +118,54 @@ k8s_events_recent:
     namespace: all
     kind: events
 
-# --- New: Incident issue auto-file (GitHub) ----------------------------------
+# --- Cloudflare --------------------------------------------------------------
+dns_check_records:
+  description: >
+    Use cloudflare_dns_tool with op="list" to fetch DNS records for the configured zone.
+    Return tool output verbatim; do NOT invent lines.
+  expected_output: >
+    "Records:\n<type name content proxied ttl>..." or explicit ERROR.
+  agent: cloudflare_admin
+
+dns_get_record_api:
+  description: >
+    Use cloudflare_dns_tool with op="get", name="api" (or FQDN if provided via inputs.fqdn).
+    Return the raw record data or "NOT FOUND".
+  expected_output: >
+    One block with the record info, "NOT FOUND", or ERROR.
+  agent: cloudflare_admin
+  inputs:
+    name: "api"
+
+# ⚠️ Mutating guarded by ALLOW_MUTATING
+dns_upsert_record_api:
+  description: >
+    If ALLOW_MUTATING=true, use cloudflare_dns_tool with op="upsert" to ensure an A/AAAA/CNAME for API endpoint.
+    Inputs: name, type, content, proxied(bool), ttl.
+    Otherwise, output the safety ERROR verbatim.
+  expected_output: >
+    "UPSERT OK: <id>" or safety ERROR.
+  agent: cloudflare_admin
+
+# --- OpenRouter / LLM Gateway ------------------------------------------------
+llm_gateway_health:
+  description: >
+    Use openrouter_health_tool with op="models" to verify gateway and list a short preview.
+    Return tool output verbatim.
+  expected_output: >
+    "Models:<count>\nPreview:\n<up to 10 lines>" or explicit ERROR.
+  agent: llm_gateway_observer
+
+# --- MCP-K8s bridge ----------------------------------------------------------
+mcp_k8s_env_check:
+  description: >
+    Validate env for mcp-server-kubernetes connectivity and produce a client config snippet.
+    Use mcp_k8s_tool with op="env_check" then op="config_snippet".
+  expected_output: >
+    "OK: <details>\nSnippet:\n<json/yaml>" or explicit ERROR with missing keys.
+  agent: mcp_bridge
+
+# --- Incident issue auto-file (GitHub) ----------------------------------
 incident_create_issue_if_needed:
   description: >
     If previous steps (Loki/Argo/K8s) indicate problems (e.g., Matches>0 with critical errors,

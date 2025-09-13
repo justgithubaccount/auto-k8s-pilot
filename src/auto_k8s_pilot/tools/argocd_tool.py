@@ -1,12 +1,14 @@
-# src/auto_k8s_pilot/tools/argocd_tool.py
-import os, requests
+import requests
 from typing import Type, Literal, Optional
 from pydantic import BaseModel, Field
 from crewai.tools import BaseTool
+from auto_k8s_pilot.settings import Settings
+
 
 class ArgoInput(BaseModel):
     op: Literal["list_apps", "app_status", "app_sync"] = Field(..., description="Operation")
     app: Optional[str] = Field(None, description="Application name for status/sync")
+
 
 class ArgoCDTool(BaseTool):
     name: str = "argocd_tool"
@@ -17,13 +19,14 @@ class ArgoCDTool(BaseTool):
     args_schema: Type[BaseModel] = ArgoInput
 
     def _run(self, op: str, app: Optional[str] = None) -> str:
-        base = os.getenv("ARGOCD_BASE_URL")
-        token = os.getenv("ARGOCD_API_TOKEN")
+        settings = Settings()
+        base = settings.ARGOCD_BASE_URL
+        token = settings.ARGOCD_API_TOKEN
         if not base or not token:
             return "ERROR: Set ARGOCD_BASE_URL and ARGOCD_API_TOKEN"
 
         headers = {"Authorization": f"Bearer {token}"}
-        allow_mutating = os.getenv("ALLOW_MUTATING", "false").lower() in ("1","true","yes")
+        allow_mutating = settings.ALLOW_MUTATING
 
         try:
             if op == "list_apps":
@@ -52,3 +55,4 @@ class ArgoCDTool(BaseTool):
                 return "ERROR: unsupported op"
         except Exception as e:
             return f"ERROR: Argo API failed ({e})"
+

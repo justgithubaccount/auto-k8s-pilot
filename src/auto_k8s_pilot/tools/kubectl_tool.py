@@ -1,9 +1,10 @@
-import os, subprocess, json
+import subprocess, json
 from typing import Type, Optional, Literal
 from pydantic import BaseModel, Field, validator
 from crewai.tools import BaseTool
+from auto_k8s_pilot.settings import Settings
 
-# ---- Input schema -----------------------------------------------------------
+
 class KubectlInput(BaseModel):
     action: Literal["get", "logs", "describe", "top", "rollout_restart", "cordon", "uncordon"] = Field(
         ..., description="Kubernetes action"
@@ -20,7 +21,7 @@ class KubectlInput(BaseModel):
 
     @validator("namespace", always=True)
     def default_ns(cls, v):
-        return v or os.getenv("DEFAULT_NAMESPACE", "default")
+        return v or SETTINGS.DEFAULT_NAMESPACE
 
 
 class KubectlTool(BaseTool):
@@ -45,25 +46,18 @@ class KubectlTool(BaseTool):
         limit: int = 200,
         context: Optional[str] = None,
     ) -> str:
-        # --- Safety gates -----------------------------------------------------
-        allow_mutating = os.getenv("ALLOW_MUTATING", "false").lower() in ("1", "true", "yes")
+        settings = Settings()
+        allow_mutating = settings.ALLOW_MUTATING
         mutating_actions = {"rollout_restart", "cordon", "uncordon"}
         if action in mutating_actions and not allow_mutating:
             return "ERROR: Mutating actions are disabled. Set ALLOW_MUTATING=true to enable."
 
-        # --- Base command -----------------------------------------------------
-        kubeconfig = os.getenv("KUBECONFIG", os.path.expanduser("~/.kube/config"))
+        kubeconfig = settings.KUBECONFIG or "~/.kube/config"
         base = ["kubectl", f"--kubeconfig={kubeconfig}"]
         if context:
             base += [f"--context={context}"]
 
-        # --- Namespace flag ---------------------------------------------------
-        if namespace in (None, "", "all"):
-            ns_flag = ["-A"]
-        else:
-            ns_flag = ["-n", namespace]
-
-        # --- Build kubectl args ----------------------------------------------
+        ns_flag = ["-A"] if namespace in (None, "", "all") else ["-n", namespace]
         cmd = base[:]
         if action == "get":
             if not kind:
@@ -127,11 +121,10 @@ class KubectlTool(BaseTool):
         else:
             return f"ERROR: unsupported action '{action}'"
 
-        # --- Execute with timeout --------------------------------------------
         try:
             proc = subprocess.run(
                 cmd, capture_output=True, text=True,
-                timeout=int(os.getenv("KUBECTL_TIMEOUT", "20"))
+                timeout=int(settings.KUBECTL_TIMEOUT)
             )
         except Exception as e:
             return f"ERROR: execution failed ({e})"
@@ -143,10 +136,12 @@ class KubectlTool(BaseTool):
         out = proc.stdout.strip()
         if out.startswith("{") or out.startswith("["):
             try:
-                data = json.loads(out)
-                preview = json.dumps(data, ensure_ascii=False)[:4000]
+                import json as _json
+                data = _json.loads(out)
+                preview = _json.dumps(data, ensure_ascii=False)[:4000]
                 return preview
             except Exception:
                 pass
 
         return out[:4000]
+

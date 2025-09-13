@@ -4,4 +4,8 @@ description: >
   - GitOps drift via ArgoCD
   - Resource pressure and events via kubectl
   - Error and HTTP activity via Loki
+  - DNS audit via Cloudflare
+  - LLM gateway reachability via OpenRouter
+  - MCP-K8s bridge validation
   - Auto-triage to GitHub issues
+

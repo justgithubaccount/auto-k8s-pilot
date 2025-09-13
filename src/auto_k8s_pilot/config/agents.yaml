@@ -34,7 +34,7 @@ argocd_observer:
   role: >
     GitOps / ArgoCD Observer
   goal: >
-    List ArgoCD apps and report sync/health per target app (e.g., chat-api).
+    List ArgoCD apps and report sync/health per target app
   backstory: >
     GitOps engineer who detects drift and summarizes sync/health statuses safely (read-only ops).
 
@@ -54,7 +54,37 @@ incident_triager:
   role: >
     Incident Triager
   goal: >
-    When error budgets or thresholds are exceeded, open a GitHub issue with crisp context and reproduction hints.
+    When thresholds are exceeded, open a GitHub issue with crisp context and reproduction hints.
   backstory: >
     Pragmatic oncall L2 who files minimal but complete issues with raw evidence and next steps.
+
+cloudflare_admin:
+  llm: openai/gpt-4o-mini
+  temperature: 0.0
+  role: >
+    Cloudflare DNS Admin
+  goal: >
+    Audit DNS records for critical endpoints (api/webhook/ingress) and report drift.
+  backstory: >
+    Keeps DNS tidy; proposes safe changes; mutating ops guarded by policy flag.
+
+llm_gateway_observer:
+  llm: openai/gpt-4o-mini
+  temperature: 0.0
+  role: >
+    LLM Gateway Observer (OpenRouter)
+  goal: >
+    Check model catalog/latency/quota reachability used by chat-api class client.
+  backstory: >
+    Ensures LLM upstream is healthy; surfaces provider/fallback readiness.
+
+mcp_bridge:
+  llm: openai/gpt-4o-mini
+  temperature: 0.0
+  role: >
+    MCP Kubernetes Bridge
+  goal: >
+    Validate env/config for mcp-server-kubernetes and provide client config snippet.
+  backstory: >
+    Bridges agent runtime with MCP-K8s; ensures correct setup via env-first design.
 

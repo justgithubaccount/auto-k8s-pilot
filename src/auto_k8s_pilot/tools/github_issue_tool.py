@@ -1,12 +1,15 @@
-import os, requests
+import requests
 from pydantic import BaseModel, Field
 from crewai.tools import BaseTool
 from typing import Type
+from auto_k8s_pilot.settings import Settings
+
 
 class GitHubIssueInput(BaseModel):
     repo: str = Field(..., description="owner/repo")
     title: str = Field(..., description="Issue title")
     body: str = Field(..., description="Issue body in Markdown")
+
 
 class GitHubIssueTool(BaseTool):
     name: str = "github_create_issue"
@@ -14,7 +17,8 @@ class GitHubIssueTool(BaseTool):
     args_schema: Type[BaseModel] = GitHubIssueInput
 
     def _run(self, repo: str, title: str, body: str) -> str:
-        token = os.getenv("GITHUB_TOKEN")
+        settings = Settings()
+        token = settings.GITHUB_TOKEN
         if not token:
             return "ERROR: GITHUB_TOKEN is not set."
         url = f"https://api.github.com/repos/{repo}/issues"
@@ -27,3 +31,4 @@ class GitHubIssueTool(BaseTool):
             return f"Created issue #{num} in {repo}"
         except Exception as e:
             return f"ERROR: GitHub API failed ({e})."
+

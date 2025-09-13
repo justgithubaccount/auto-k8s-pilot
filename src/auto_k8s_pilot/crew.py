@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from crewai import Agent, Crew, Process, Task
@@ -6,15 +5,18 @@ from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List
 
-from crewai_tools import SerperDevTool
 from auto_k8s_pilot.tools.kubectl_tool import KubectlTool
 from auto_k8s_pilot.tools.argocd_tool import ArgoCDTool
 from auto_k8s_pilot.tools.loki_tool import LokiQueryTool
 from auto_k8s_pilot.tools.github_issue_tool import GitHubIssueTool
+from auto_k8s_pilot.tools.cloudflare_dns_tool import CloudflareDNSTool
+from auto_k8s_pilot.tools.openrouter_health_tool import OpenRouterHealthTool
+from auto_k8s_pilot.tools.mcp_k8s_tool import MCPK8sTool
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_DIR = PROJECT_ROOT / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
 
 @CrewBase
 class AutoK8sPilot:
@@ -67,6 +69,30 @@ class AutoK8sPilot:
             config=self.agents_config['incident_triager'],
             verbose=True,
             tools=[GitHubIssueTool()],
+        )
+
+    @agent
+    def cloudflare_admin(self) -> Agent:
+        return Agent(
+            config=self.agents_config['cloudflare_admin'],
+            verbose=True,
+            tools=[CloudflareDNSTool()],
+        )
+
+    @agent
+    def llm_gateway_observer(self) -> Agent:
+        return Agent(
+            config=self.agents_config['llm_gateway_observer'],
+            verbose=True,
+            tools=[OpenRouterHealthTool()],
+        )
+
+    @agent
+    def mcp_bridge(self) -> Agent:
+        return Agent(
+            config=self.agents_config['mcp_bridge'],
+            verbose=True,
+            tools=[MCPK8sTool()],
         )
 
     @task
@@ -144,6 +170,41 @@ class AutoK8sPilot:
         return Task(
             config=self.tasks_config['loki_http_activity_chat_api'],
             output_file="output/loki_chat_api_http.md",
+        )
+
+    @task
+    def dns_check_records(self) -> Task:
+        return Task(
+            config=self.tasks_config['dns_check_records'],
+            output_file="output/dns_records.md",
+        )
+
+    @task
+    def dns_get_record_api(self) -> Task:
+        return Task(
+            config=self.tasks_config['dns_get_record_api'],
+            output_file="output/dns_api_record.md",
+        )
+
+    @task
+    def dns_upsert_record_api(self) -> Task:
+        return Task(
+            config=self.tasks_config['dns_upsert_record_api'],
+            output_file="output/dns_api_upsert.md",
+        )
+
+    @task
+    def llm_gateway_health(self) -> Task:
+        return Task(
+            config=self.tasks_config['llm_gateway_health'],
+            output_file="output/llm_gateway_health.md",
+        )
+
+    @task
+    def mcp_k8s_env_check(self) -> Task:
+        return Task(
+            config=self.tasks_config['mcp_k8s_env_check'],
+            output_file="output/mcp_env_check.md",
         )
 
     @task

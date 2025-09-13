@@ -12,6 +12,12 @@ agents:
     profile: loki_analyst
   - id: incident_triager
     profile: incident_triager
+  - id: cloudflare_admin
+    profile: cloudflare_admin
+  - id: llm_gateway_observer
+    profile: llm_gateway_observer
+  - id: mcp_bridge
+    profile: mcp_bridge
 tasks:
   - id: k8s_pods_overview
     agent: k8s_operator
@@ -33,6 +39,14 @@ tasks:
     agent: loki_analyst
   - id: loki_http_activity_chat_api
     agent: loki_analyst
+  - id: dns_check_records
+    agent: cloudflare_admin
+  - id: dns_get_record_api
+    agent: cloudflare_admin
+  - id: llm_gateway_health
+    agent: llm_gateway_observer
+  - id: mcp_k8s_env_check
+    agent: mcp_bridge
   - id: incident_create_issue_if_needed
     agent: incident_triager
 
