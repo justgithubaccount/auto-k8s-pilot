@@ -1,26 +1,7 @@
-# research_task:
-#   description: >
-#     Conduct a thorough research about {topic}
-#     Make sure you find any interesting and relevant information given
-#     the current year is {current_year}.
-#   expected_output: >
-#     A list with 10 bullet points of the most relevant information about {topic}
-#   agent: researcher
-
-# reporting_task:
-#   description: >
-#     Review the context you got and expand each topic into a full section for a report.
-#     Make sure the report is detailed and contains any and all relevant information.
-#   expected_output: >
-#     A fully fledged report with the main topics, each with a full section of information.
-#     Formatted as markdown without '```'
-#   agent: reporting_analyst
-
 k8s_pods_overview:
   description: >
-    Call kubectl_tool with action="get", kind="pods". 
-    Always return ONLY the raw output from kubectl_tool. 
-    Do not reformat or invent anything. 
+    Call kubectl_tool with action="get", kind="pods".
+    Always return ONLY the raw output from kubectl_tool.
     If kubectl_tool returns empty, output must be empty too.
   expected_output: >
     Exact stdout from kubectl_tool (wide format). No fabricated data.
@@ -38,21 +19,161 @@ explain_pods:
 
 cluster_summary:
   description: >
-    Analyze the raw kubectl get pods output and provide a high-level summary
+    Analyze the raw 'kubectl get pods -A' output and provide a high-level summary
     of what components are installed in the cluster. Group them by purpose:
-    - core Kubernetes system pods
+    - core Kubernetes system
     - networking (CNI)
     - ingress
-    - GitOps / CI/CD
-    - monitoring, metrics, or others
-
-    Explain in plain language what each component does and how it fits
-    into the cluster architecture.
+    - GitOps / CI/CD (e.g., ArgoCD)
+    - observability (Vector, Loki, Grafana, OpenTelemetry)
+    - applications (e.g., chat-api)
   expected_output: >
-    Human-readable explanation of the cluster architecture:
-    - list of detected components
-    - their roles and responsibilities
-    - notes on health (running vs pending/failing)
+    Human-readable explanation of cluster architecture with detected components, roles, and health notes.
   agent: infra_architect
 
+# --- ArgoCD / GitOps ----------------------------------------------------
+argocd_list_apps:
+  description: >
+    Use argocd_tool with op="list_apps".
+    Return the raw list; if API creds are missing, return the tool error.
+  expected_output: >
+    "Apps:\n<one-per-line>" or explicit ERROR from tool.
+  agent: argocd_observer
+
+argocd_app_status_chat_api:
+  description: >
+    Use argocd_tool with op="app_status", app="chat-api" (default).
+    Report Sync and Health for chat-api Argo application.
+  expected_output: >
+    Single block: "App: chat-api\nSync: <status>\nHealth: <status>" or explicit ERROR.
+  agent: argocd_observer
+  inputs:
+    app: chat-api
+
+# ⚠️ Mutating (disabled unless ALLOW_MUTATING=true)
+argocd_sync_chat_api:
+  description: >
+    If and only if ALLOW_MUTATING=true, call argocd_tool with op="app_sync", app="chat-api".
+    Otherwise, output the tool's safety error verbatim.
+  expected_output: >
+    "Triggered sync for chat-api" or safety ERROR.
+  agent: argocd_observer
+  inputs:
+    app: chat-api
+
+# --- Loki / Observability ------------------------------------------------
+loki_recent_errors_chat_api:
+  description: >
+    Use loki_query to fetch last 30 minutes for {app="chat-api"} with "|= \"ERROR\"" and limit=200.
+    Return tool output verbatim; do NOT invent lines.
+  expected_output: >
+    "Matches: <n>\nPreview:\n<up to 10 samples>" or explicit ERROR.
+  agent: loki_analyst
+  inputs:
+    query: '{app="chat-api"} |= "ERROR"'
+    minutes: 30
+    limit: 200
+
+loki_http_activity_chat_api:
+  description: >
+    Use loki_query to fetch last 30 minutes for {app="chat-api"} and provide a quick activity glimpse.
+    Prefer query: '{app="chat-api"} |= "HTTP"' with limit=200.
+  expected_output: >
+    "Matches: <n>\nPreview:\n<samples>" or explicit ERROR.
+  agent: loki_analyst
+  inputs:
+    query: '{app="chat-api"} |= "HTTP"'
+    minutes: 30
+    limit: 200
+
+# --- K8s resource pressure ----------------------------------------------
+k8s_top_nodes:
+  description: >
+    Use kubectl_tool with action="top", kind="nodes" to fetch node-level CPU/MEM usage.
+    Output tool result verbatim.
+  expected_output: >
+    Exact stdout from kubectl top nodes.
+  agent: k8s_operator
+  inputs:
+    namespace: all
+
+k8s_top_pods_ns_default:
+  description: >
+    Use kubectl_tool with action="top", kind="pods" and namespace "default".
+    Output tool result verbatim.
+  expected_output: >
+    Exact stdout from kubectl top pods.
+  agent: k8s_operator
+  inputs:
+    namespace: default
+
+k8s_events_recent:
+  description: >
+    Use kubectl_tool with action="get", kind="events" and namespace "all" to fetch recent cluster events.
+    Output tool result verbatim.
+  expected_output: >
+    Exact stdout from kubectl get events -A.
+  agent: k8s_operator
+  inputs:
+    namespace: all
+    kind: events
+
+# --- Cloudflare --------------------------------------------------------------
+dns_check_records:
+  description: >
+    Use cloudflare_dns_tool with op="list" to fetch DNS records for the configured zone.
+    Return tool output verbatim; do NOT invent lines.
+  expected_output: >
+    "Records:\n<type name content proxied ttl>..." or explicit ERROR.
+  agent: cloudflare_admin
+
+dns_get_record_api:
+  description: >
+    Use cloudflare_dns_tool with op="get", name="api" (or FQDN if provided via inputs.fqdn).
+    Return the raw record data or "NOT FOUND".
+  expected_output: >
+    One block with the record info, "NOT FOUND", or ERROR.
+  agent: cloudflare_admin
+  inputs:
+    name: "api"
+
+# ⚠️ Mutating guarded by ALLOW_MUTATING
+dns_upsert_record_api:
+  description: >
+    If ALLOW_MUTATING=true, use cloudflare_dns_tool with op="upsert" to ensure an A/AAAA/CNAME for API endpoint.
+    Inputs: name, type, content, proxied(bool), ttl.
+    Otherwise, output the safety ERROR verbatim.
+  expected_output: >
+    "UPSERT OK: <id>" or safety ERROR.
+  agent: cloudflare_admin
+
+# --- OpenRouter / LLM Gateway ------------------------------------------------
+llm_gateway_health:
+  description: >
+    Use openrouter_health_tool with op="models" to verify gateway and list a short preview.
+    Return tool output verbatim.
+  expected_output: >
+    "Models:<count>\nPreview:\n<up to 10 lines>" or explicit ERROR.
+  agent: llm_gateway_observer
+
+# --- MCP-K8s bridge ----------------------------------------------------------
+mcp_k8s_env_check:
+  description: >
+    Validate env for mcp-server-kubernetes connectivity and produce a client config snippet.
+    Use mcp_k8s_tool with op="env_check" then op="config_snippet".
+  expected_output: >
+    "OK: <details>\nSnippet:\n<json/yaml>" or explicit ERROR with missing keys.
+  agent: mcp_bridge
+
+# --- Incident issue auto-file (GitHub) ----------------------------------
+incident_create_issue_if_needed:
+  description: >
+    If previous steps (Loki/Argo/K8s) indicate problems (e.g., Matches>0 with critical errors,
+    Health!=Healthy, Sync!=Synced, CrashLoopBackOff), then call github_create_issue to open an issue in repo "justgithubaccount/app-release".
+    Title format: "[auto] Incident detected: <short reason>".
+    Body must include: last 10 error lines from Loki (if any), Argo app status summary, kubectl pod state snippet.
+    If no problems detected, output "No incident filed".
+  expected_output: >
+    "Created issue #<n> in justgithubaccount/app-release" or "No incident filed" or tool ERROR.
+  agent: incident_triager
 

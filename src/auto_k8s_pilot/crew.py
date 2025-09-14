@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from crewai import Agent, Crew, Process, Task
@@ -6,12 +5,18 @@ from crewai.project import CrewBase, agent, crew, task
 from crewai.agents.agent_builder.base_agent import BaseAgent
 from typing import List
 
-from crewai_tools import SerperDevTool
 from auto_k8s_pilot.tools.kubectl_tool import KubectlTool
+from auto_k8s_pilot.tools.argocd_tool import ArgoCDTool
+from auto_k8s_pilot.tools.loki_tool import LokiQueryTool
+from auto_k8s_pilot.tools.github_issue_tool import GitHubIssueTool
+from auto_k8s_pilot.tools.cloudflare_dns_tool import CloudflareDNSTool
+from auto_k8s_pilot.tools.openrouter_health_tool import OpenRouterHealthTool
+from auto_k8s_pilot.tools.mcp_k8s_tool import MCPK8sTool
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 OUTPUT_DIR = PROJECT_ROOT / "output"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
 
 @CrewBase
 class AutoK8sPilot:
@@ -20,23 +25,11 @@ class AutoK8sPilot:
     agents: List[BaseAgent]
     tasks: List[Task]
 
-    # @agent
-    # def researcher(self) -> Agent:
-    #     return Agent(
-    #         config=self.agents_config['researcher'],
-    #         verbose=True,
-    #         tools=[
-    #             SerperDevTool(),
-    #             KubectlTool(),
-    #         ],
-    #     )
-
     @agent
     def reporting_analyst(self) -> Agent:
         return Agent(
             config=self.agents_config['reporting_analyst'],
             verbose=True,
-            # tools=[KubectlTool()],
         )
 
     @agent
@@ -46,40 +39,76 @@ class AutoK8sPilot:
             verbose=True,
             tools=[KubectlTool()],
         )
-    
+
     @agent
     def infra_architect(self) -> Agent:
         return Agent(
             config=self.agents_config['infra_architect'],
             verbose=True,
-    )
+        )
 
-    # @task
-    # def research_task(self) -> Task:
-    #     return Task(config=self.tasks_config['research_task'])
+    @agent
+    def argocd_observer(self) -> Agent:
+        return Agent(
+            config=self.agents_config['argocd_observer'],
+            verbose=True,
+            tools=[ArgoCDTool()],
+        )
 
-    # @task
-    # def reporting_task(self) -> Task:
-    #     return Task(
-    #         config=self.tasks_config['reporting_task'],
-    #         output_file='report.md'
-    #     )
+    @agent
+    def loki_analyst(self) -> Agent:
+        return Agent(
+            config=self.agents_config['loki_analyst'],
+            verbose=True,
+            tools=[LokiQueryTool()],
+        )
 
-    # ← эти два таска нужны, чтобы k8s-задачи реально исполнялись
+    @agent
+    def incident_triager(self) -> Agent:
+        return Agent(
+            config=self.agents_config['incident_triager'],
+            verbose=True,
+            tools=[GitHubIssueTool()],
+        )
+
+    @agent
+    def cloudflare_admin(self) -> Agent:
+        return Agent(
+            config=self.agents_config['cloudflare_admin'],
+            verbose=True,
+            tools=[CloudflareDNSTool()],
+        )
+
+    @agent
+    def llm_gateway_observer(self) -> Agent:
+        return Agent(
+            config=self.agents_config['llm_gateway_observer'],
+            verbose=True,
+            tools=[OpenRouterHealthTool()],
+        )
+
+    @agent
+    def mcp_bridge(self) -> Agent:
+        return Agent(
+            config=self.agents_config['mcp_bridge'],
+            verbose=True,
+            tools=[MCPK8sTool()],
+        )
+
     @task
     def k8s_pods_overview(self) -> Task:
         return Task(
             config=self.tasks_config['k8s_pods_overview'],
             output_file="output/pods_overview.md",
-        )   
-    
+        )
+
     @task
     def explain_pods(self) -> Task:
         return Task(
             config=self.tasks_config['explain_pods'],
             output_file="output/pods_explained.md",
         )
-    
+
     @task
     def cluster_summary(self) -> Task:
         return Task(
@@ -87,9 +116,103 @@ class AutoK8sPilot:
             output_file="output/cluster_summary.md",
         )
 
-    # @task
-    # def k8s_error_logs(self) -> Task:
-    #     return Task(config=self.tasks_config['k8s_error_logs'])
+    @task
+    def k8s_top_nodes(self) -> Task:
+        return Task(
+            config=self.tasks_config['k8s_top_nodes'],
+            output_file="output/top_nodes.md",
+        )
+
+    @task
+    def k8s_top_pods_ns_default(self) -> Task:
+        return Task(
+            config=self.tasks_config['k8s_top_pods_ns_default'],
+            output_file="output/top_pods_default.md",
+        )
+
+    @task
+    def k8s_events_recent(self) -> Task:
+        return Task(
+            config=self.tasks_config['k8s_events_recent'],
+            output_file="output/events.md",
+        )
+
+    @task
+    def argocd_list_apps(self) -> Task:
+        return Task(
+            config=self.tasks_config['argocd_list_apps'],
+            output_file="output/argocd_apps.md",
+        )
+
+    @task
+    def argocd_app_status_chat_api(self) -> Task:
+        return Task(
+            config=self.tasks_config['argocd_app_status_chat_api'],
+            output_file="output/argocd_chat_api_status.md",
+        )
+
+    @task
+    def argocd_sync_chat_api(self) -> Task:
+        return Task(
+            config=self.tasks_config['argocd_sync_chat_api'],
+            output_file="output/argocd_chat_api_sync.md",
+        )
+
+    @task
+    def loki_recent_errors_chat_api(self) -> Task:
+        return Task(
+            config=self.tasks_config['loki_recent_errors_chat_api'],
+            output_file="output/loki_chat_api_errors.md",
+        )
+
+    @task
+    def loki_http_activity_chat_api(self) -> Task:
+        return Task(
+            config=self.tasks_config['loki_http_activity_chat_api'],
+            output_file="output/loki_chat_api_http.md",
+        )
+
+    @task
+    def dns_check_records(self) -> Task:
+        return Task(
+            config=self.tasks_config['dns_check_records'],
+            output_file="output/dns_records.md",
+        )
+
+    @task
+    def dns_get_record_api(self) -> Task:
+        return Task(
+            config=self.tasks_config['dns_get_record_api'],
+            output_file="output/dns_api_record.md",
+        )
+
+    @task
+    def dns_upsert_record_api(self) -> Task:
+        return Task(
+            config=self.tasks_config['dns_upsert_record_api'],
+            output_file="output/dns_api_upsert.md",
+        )
+
+    @task
+    def llm_gateway_health(self) -> Task:
+        return Task(
+            config=self.tasks_config['llm_gateway_health'],
+            output_file="output/llm_gateway_health.md",
+        )
+
+    @task
+    def mcp_k8s_env_check(self) -> Task:
+        return Task(
+            config=self.tasks_config['mcp_k8s_env_check'],
+            output_file="output/mcp_env_check.md",
+        )
+
+    @task
+    def incident_create_issue_if_needed(self) -> Task:
+        return Task(
+            config=self.tasks_config['incident_create_issue_if_needed'],
+            output_file="output/incident_issue.md",
+        )
 
     @crew
     def crew(self) -> Crew:
@@ -99,3 +222,4 @@ class AutoK8sPilot:
             process=Process.sequential,
             verbose=True,
         )
+
